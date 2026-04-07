@@ -113,9 +113,19 @@ function LoginPage({ onAuth }) {
   const [details, setDetails] = useState({ email: '', password: '' });
   const [message, setMessage] = useState('');
 
+  const demoAccounts = [
+    { name: 'Student', email: 'student@college.edu', password: 'Student@123' },
+    { name: 'Leader', email: 'leader@college.edu', password: 'Leader@123' },
+    { name: 'Teacher', email: 'teacher@college.edu', password: 'Teacher@123' },
+  ];
+
   const handleChange = (event) => {
     const { name, value } = event.target;
     setDetails((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleQuickLogin = (account) => {
+    setDetails({ email: account.email, password: account.password });
   };
 
   const handleSubmit = async (e) => {
@@ -135,11 +145,28 @@ function LoginPage({ onAuth }) {
   return (
     <AuthLayout title="Login">
       <form onSubmit={handleSubmit} className="form-grid">
-        <Input label="Email" name="email" type="email" value={details.email} onChange={handleChange} />
-        <Input label="Password" name="password" type="password" value={details.password} onChange={handleChange} />
+        <Input label="Email" name="email" type="email" value={details.email} onChange={handleChange} placeholder="student@college.edu" />
+        <Input label="Password" name="password" type="password" value={details.password} onChange={handleChange} placeholder="Student@123" />
         <button className="button" type="submit">Login</button>
       </form>
       <ErrorBox message={message} />
+      
+      <div className="demo-section">
+        <p className="demo-title">Demo Accounts (Click to fill):</p>
+        <div className="demo-buttons">
+          {demoAccounts.map((account) => (
+            <button
+              key={account.email}
+              type="button"
+              className="button button-demo"
+              onClick={() => handleQuickLogin(account)}
+            >
+              {account.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="help-text">
         Don't have an account? <NavLink to="/register">Register</NavLink>
       </div>
@@ -406,6 +433,7 @@ function ProjectDetailsPage() {
 function TasksPage() {
   const [tasks, setTasks] = useState([]);
   const [members, setMembers] = useState([]);
+  const [projects, setProjects] = useState([]);
   const [form, setForm] = useState({ title: '', assignedTo: '', projectId: '', points: 1 });
   const [error, setError] = useState('');
 
@@ -414,6 +442,7 @@ function TasksPage() {
       try {
         const [t, p, users] = await Promise.all([api.get('/tasks'), api.get('/projects'), api.get('/auth/users').catch(() => ({ data: [] }))]);
         setTasks(t.data);
+        setProjects(p.data);
         setMembers(users.data);
         setForm((f) => ({ ...f, projectId: p.data[0]?._id || '' }));
       } catch (err) {
@@ -427,6 +456,17 @@ function TasksPage() {
     try {
       await api.put(`/tasks/${taskId}`, { status: nextStatus });
       setTasks((prev) => prev.map((task) => (task._id === taskId ? { ...task, status: nextStatus } : task)));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const updateTaskAssignment = async (taskId, newAssigneeId) => {
+    try {
+      await api.put(`/tasks/${taskId}`, { assignedTo: newAssigneeId });
+      setTasks((prev) => prev.map((task) => 
+        task._id === taskId ? { ...task, assignedTo: members.find(m => m._id === newAssigneeId) || null } : task
+      ));
     } catch (err) {
       console.error(err);
     }
@@ -452,13 +492,16 @@ function TasksPage() {
           <label className="field">
             <span>Assign to</span>
             <select value={form.assignedTo} onChange={(e) => setForm((f) => ({ ...f, assignedTo: e.target.value }))} required>
-              <option value="">Select</option>
-              {members.map((m) => <option key={m._id} value={m._id}>{m.name}</option>)}
+              <option value="">Select a member</option>
+              {members.map((m) => <option key={m._id} value={m._id}>{m.name} ({m.role})</option>)}
             </select>
           </label>
           <label className="field">
             <span>Project</span>
-            <input name="projectId" value={form.projectId} onChange={(e) => setForm((f) => ({ ...f, projectId: e.target.value }))} placeholder="Project ID" required />
+            <select value={form.projectId} onChange={(e) => setForm((f) => ({ ...f, projectId: e.target.value }))} required>
+              <option value="">Select a project</option>
+              {projects.map((p) => <option key={p._id} value={p._id}>{p.name}</option>)}
+            </select>
           </label>
           <Input label="Points" name="points" type="number" value={form.points} onChange={(e) => setForm((f) => ({ ...f, points: Number(e.target.value) }))} />
           <button className="button" type="submit">Create Task</button>
@@ -469,10 +512,23 @@ function TasksPage() {
         <div className="section-card">
           {tasks.map((task) => (
             <div key={task._id} className="task-row">
-              <strong>{task.title}</strong> assigned to {task.assignedTo?.name || 'unassigned'} - {task.status}
-              <div>
-                <button className="button button-small" onClick={() => updateTaskStatus(task._id, 'In Progress')}>In Progress</button>
-                <button className="button button-small" onClick={() => updateTaskStatus(task._id, 'Done')}>Done</button>
+              <div className="task-info">
+                <strong>{task.title}</strong> - {task.status} ({task.points} points)
+                <div className="task-assignment">
+                  <label>Assigned to:</label>
+                  <select 
+                    value={task.assignedTo?._id || ''} 
+                    onChange={(e) => updateTaskAssignment(task._id, e.target.value)}
+                    className="assignment-select"
+                  >
+                    <option value="">Unassigned</option>
+                    {members.map((m) => <option key={m._id} value={m._id}>{m.name} ({m.role})</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="task-actions">
+                <button className="button button-small button-secondary" onClick={() => updateTaskStatus(task._id, 'In Progress')}>In Progress</button>
+                <button className="button button-small button-success" onClick={() => updateTaskStatus(task._id, 'Done')}>Done</button>
               </div>
             </div>
           ))}

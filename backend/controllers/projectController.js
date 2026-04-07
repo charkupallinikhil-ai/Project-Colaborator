@@ -80,7 +80,7 @@ const deleteProject = async (req, res) => {
       return res.status(403).json({ message: 'You can only delete your own projects' });
     }
 
-    await project.remove();
+    await Project.deleteOne({ _id: req.params.id });
     return res.json({ message: 'Project deleted' });
   } catch (error) {
     console.error(error);
