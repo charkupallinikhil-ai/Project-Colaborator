@@ -5,11 +5,10 @@ const path = require('path');
 
 const connectDB = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
-const authRoutes = require('./routes/auth');
-const projectRoutes = require('./routes/projects');
-const taskRoutes = require('./routes/tasks');
-const contributionRoutes = require('./routes/contribution');
-const fileRoutes = require('./routes/files');
+const authRoutes = require('./routes/authRoutes');
+const projectRoutes = require('./routes/projectRoutes');
+const taskRoutes = require('./routes/taskRoutes');
+const contributionRoutes = require('./routes/contributionRoutes');
 
 const app = express();
 
@@ -24,7 +23,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/contribution', contributionRoutes);
-app.use('/api/files', fileRoutes);
 
 // Health check
 app.get('/api/status', (req, res) => {
@@ -53,6 +51,5 @@ connectDB()
     console.error('\nTroubleshooting:');
     console.error('  1. Is MongoDB running? (mongod)');
     console.error('  2. Check MONGO_URI in backend/.env');
-    console.error('  3. Try: npm run seed\n');
     process.exit(1);
   });

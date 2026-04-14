@@ -9,8 +9,6 @@ const connectDB = require('./config/db');
 const seedData = async () => {
   try {
     console.log('🔄 Connecting to MongoDB...');
-    console.log(`   URI: ${process.env.MONGO_URI || 'mongodb://localhost:27017/student-collab'}`);
-    
     await connectDB();
     console.log('✅ Connected to MongoDB\n');
 
@@ -21,93 +19,86 @@ const seedData = async () => {
     console.log('✅ Data cleared\n');
 
     console.log('📝 Creating demo users...');
-    const users = [
-      {
-        name: 'Alice Johnson',
-        email: 'alice@example.com',
-        password: await bcrypt.hash('password123', 10),
-        role: 'Student',
-      },
-      {
-        name: 'Bob Smith',
-        email: 'bob@example.com',
-        password: await bcrypt.hash('password123', 10),
-        role: 'Leader',
-      },
-      {
-        name: 'Charlie Brown',
-        email: 'charlie@example.com',
-        password: await bcrypt.hash('password123', 10),
-        role: 'Teacher',
-      },
-    ];
+    const createdUsers = await User.insertMany([
+      { name: 'Alice Johnson', email: 'alice@example.com', password: await bcrypt.hash('password123', 10), role: 'Student' },
+      { name: 'Bob Smith',     email: 'bob@example.com',   password: await bcrypt.hash('password123', 10), role: 'Leader' },
+      { name: 'Charlie Brown', email: 'charlie@example.com', password: await bcrypt.hash('password123', 10), role: 'Teacher' },
+    ]);
+    console.log('✅ Demo users created!\n');
 
-    const createdUsers = await User.insertMany(users);
-    console.log('✅ Demo users created successfully!\n');
+    const [alice, bob, charlie] = createdUsers;
 
     console.log('📁 Creating demo projects...');
-    const projects = [
+    const createdProjects = await Project.insertMany([
       {
         name: 'Web Development Project',
         description: 'Build a responsive website for the college library',
-        leader: createdUsers[1]._id, // Bob (Leader)
-        members: [createdUsers[0]._id, createdUsers[1]._id], // Alice and Bob
+        joinCode: 'WEB001',
+        createdBy: bob._id,
+        leader: bob._id,
+        members: [alice._id, bob._id],
       },
       {
         name: 'Mobile App Development',
         description: 'Create a student attendance tracking app',
-        leader: createdUsers[1]._id, // Bob (Leader)
-        members: [createdUsers[0]._id], // Alice
+        joinCode: 'MOB002',
+        createdBy: charlie._id,
+        leader: charlie._id,
+        members: [alice._id, charlie._id],
       },
-    ];
-
-    const createdProjects = await Project.insertMany(projects);
-    console.log('✅ Demo projects created successfully!\n');
+    ]);
+    console.log('✅ Demo projects created!\n');
+    console.log(`   Project 1 Join Code: WEB001`);
+    console.log(`   Project 2 Join Code: MOB002\n`);
 
     console.log('📋 Creating demo tasks...');
-    const tasks = [
+    await Task.insertMany([
       {
         title: 'Design homepage layout',
-        assignedTo: createdUsers[0]._id, // Alice
-        projectId: createdProjects[0]._id, // Web Development Project
+        description: 'Create a modern, responsive homepage design',
+        assignedTo: alice._id,
+        projectId: createdProjects[0]._id,
         status: 'In Progress',
         points: 3,
       },
       {
         title: 'Implement user authentication',
-        assignedTo: createdUsers[0]._id, // Alice
-        projectId: createdProjects[0]._id, // Web Development Project
-        status: 'Pending',
+        description: 'Set up JWT-based login and register flow',
+        assignedTo: alice._id,
+        projectId: createdProjects[0]._id,
+        status: 'Submitted',
+        submissionLink: 'https://github.com/alice/auth-module',
         points: 5,
       },
       {
         title: 'Create wireframes for mobile app',
-        assignedTo: createdUsers[0]._id, // Alice
-        projectId: createdProjects[1]._id, // Mobile App Project
-        status: 'Done',
+        description: 'Figma wireframes for all main screens',
+        assignedTo: alice._id,
+        projectId: createdProjects[1]._id,
+        status: 'Approved',
+        isApproved: true,
+        submissionLink: 'https://figma.com/alice/wireframes',
         points: 2,
       },
-    ];
+    ]);
+    console.log('✅ Demo tasks created!\n');
 
-    await Task.insertMany(tasks);
-    console.log('✅ Demo tasks created successfully!\n');
-    
-    console.log('═══════════════════════════════════════════');
+    console.log('═══════════════════════════════════════════════');
     console.log('📌 Demo Credentials:');
-    console.log('═══════════════════════════════════════════');
-    console.log('  👤 Student: alice@example.com / password123');
-    console.log('  👤 Leader:  bob@example.com / password123');
-    console.log('  👤 Teacher: charlie@example.com / password123');
-    console.log('═══════════════════════════════════════════\n');
+    console.log('═══════════════════════════════════════════════');
+    console.log('  🎓 Student: alice@example.com  / password123');
+    console.log('  🏆 Leader:  bob@example.com    / password123');
+    console.log('  👩‍🏫 Teacher: charlie@example.com / password123');
+    console.log('───────────────────────────────────────────────');
+    console.log('  🔑 Project Join Codes:');
+    console.log('     Web Development: WEB001');
+    console.log('     Mobile App:      MOB002');
+    console.log('═══════════════════════════════════════════════\n');
 
     mongoose.connection.close();
-    console.log('✅ Done! You can now login and start assigning tasks.');
+    console.log('✅ Seed complete! Open http://localhost:5173 to get started.\n');
   } catch (error) {
     console.error('❌ Seed failed:', error.message);
-    console.error('\nTroubleshooting:');
-    console.error('  1. Ensure MongoDB is running (mongod)');
-    console.error('  2. Check MONGO_URI in .env');
-    console.error('  3. Check backend/.env exists with correct values');
     mongoose.connection.close();
     process.exit(1);
   }
