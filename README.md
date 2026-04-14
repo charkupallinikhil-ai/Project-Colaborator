@@ -143,9 +143,9 @@ VITE v5.x.x  ready in xxx ms
 
 | Role | Email | Password |
 |------|-------|----------|
-| **Student** | student@college.edu | Student@123 |
-| **Leader** | leader@college.edu | Leader@123 |
-| **Teacher** | teacher@college.edu | Teacher@123 |
+| **Student** | alice@example.com | password123 |
+| **Leader** | bob@example.com | password123 |
+| **Teacher** | charlie@example.com | password123 |
 
 ---
 

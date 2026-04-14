@@ -85,11 +85,11 @@ function AuthLayout({ title, children, footer }) {
   );
 }
 
-function Input({ label, value, onChange, type = 'text', name }) {
+function Input({ label, value, onChange, type = 'text', name, ...rest }) {
   return (
     <label className="field">
       <span>{label}</span>
-      <input type={type} name={name} value={value} onChange={onChange} required />
+      <input type={type} name={name} value={value} onChange={onChange} required {...rest} />
     </label>
   );
 }
@@ -114,9 +114,9 @@ function LoginPage({ onAuth }) {
   const [message, setMessage] = useState('');
 
   const demoAccounts = [
-    { name: 'Student', email: 'student@college.edu', password: 'Student@123' },
-    { name: 'Leader', email: 'leader@college.edu', password: 'Leader@123' },
-    { name: 'Teacher', email: 'teacher@college.edu', password: 'Teacher@123' },
+    { name: 'Student', email: 'alice@example.com', password: 'password123' },
+    { name: 'Leader', email: 'bob@example.com', password: 'password123' },
+    { name: 'Teacher', email: 'charlie@example.com', password: 'password123' },
   ];
 
   const handleChange = (event) => {
@@ -145,8 +145,8 @@ function LoginPage({ onAuth }) {
   return (
     <AuthLayout title="Login">
       <form onSubmit={handleSubmit} className="form-grid">
-        <Input label="Email" name="email" type="email" value={details.email} onChange={handleChange} placeholder="student@college.edu" />
-        <Input label="Password" name="password" type="password" value={details.password} onChange={handleChange} placeholder="Student@123" />
+        <Input label="Email" name="email" type="email" value={details.email} onChange={handleChange} placeholder="alice@example.com" />
+        <Input label="Password" name="password" type="password" value={details.password} onChange={handleChange} placeholder="password123" />
         <button className="button" type="submit">Login</button>
       </form>
       <ErrorBox message={message} />
