@@ -2,6 +2,8 @@
   command = "cd vite-project && npm run build"
   publish = "vite-project/dist"
   base = "vite-project"
+  command = "npm run build"
+  publish = "dist"
 
 [[redirects]]
   from = "/*"
