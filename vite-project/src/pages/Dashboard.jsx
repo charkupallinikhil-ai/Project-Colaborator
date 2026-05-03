@@ -19,25 +19,24 @@ function Dashboard({ user }) {
 
   const isLeaderOrTeacher = user.role === 'Leader' || user.role === 'Teacher';
 
-  useEffect(() => {
-    let canceled = false;
-    async function load() {
-      try {
-        const [pRes, tRes] = await Promise.all([
-          api.get('/projects'),
-          api.get('/tasks'),
-        ]);
-        if (canceled) return;
-        setProjects(pRes.data);
-        setTasks(tRes.data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        if (!canceled) setLoading(false);
-      }
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [pRes, tRes] = await Promise.all([
+        api.get('/projects'),
+        api.get('/tasks'),
+      ]);
+      setProjects(pRes.data);
+      setTasks(tRes.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    load();
-    return () => { canceled = true; };
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   if (loading) {
@@ -50,9 +49,10 @@ function Dashboard({ user }) {
   }
 
   const totalTasks = tasks.length;
-  const completedTasks = tasks.filter((t) => t.status === 'Done').length;
+  const completedTasks = tasks.filter((t) => t.status === 'Approved').length;
   const inProgressTasks = tasks.filter((t) => t.status === 'In Progress').length;
   const pendingTasks = tasks.filter((t) => t.status === 'Pending').length;
+  const submittedTasks = tasks.filter((t) => t.status === 'Submitted').length;
   const myTasks = tasks.filter((t) => t.assignedTo?._id === user.id);
   const myCompleted = myTasks.filter((t) => t.status === 'Done').length;
   const myContrib = myTasks.length > 0 ? Math.round((myCompleted / myTasks.length) * 100) : 0;
@@ -66,27 +66,33 @@ function Dashboard({ user }) {
       <div className="page-header">
         <div>
           <h1>Dashboard</h1>
-          <p className="page-subtitle">Welcome back, <strong>{user.name}</strong> 👋</p>
+          <p className="page-subtitle">Welcome back, <strong>{user.name}</strong></p>
         </div>
-        {isLeaderOrTeacher && (
-          <div className="flex-row">
-            <NavLink to="/projects/create" className="button">+ New Project</NavLink>
-            <NavLink to="/tasks" className="button button-secondary">+ Assign Task</NavLink>
-          </div>
-        )}
+        <div className="flex-row">
+          <button onClick={loadData} className="button button-secondary" disabled={loading}>
+            {loading ? 'Refreshing...' : '🔄 Refresh'}
+          </button>
+          {isLeaderOrTeacher && (
+            <>
+              <NavLink to="/projects/create" className="button">+ New Project</NavLink>
+              <NavLink to="/tasks" className="button button-secondary">+ Assign Task</NavLink>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Stats */}
       <div className="stats-grid">
         {isLeaderOrTeacher && (
-          <StatCard label="Projects" value={projects.length} icon="📁" color="#7c9ef8" />
+          <StatCard label="Projects" value={projects.length} icon="Projects" color="#7c9ef8" />
         )}
-        <StatCard label="Total Tasks" value={totalTasks} icon="✅" color="#b89cf8" />
-        <StatCard label="Completed" value={completedTasks} icon="🏆" color="#4caf88" />
-        <StatCard label="In Progress" value={inProgressTasks} icon="⚡" color="#e8a04a" />
-        <StatCard label="Pending" value={pendingTasks} icon="🕐" color="#e87070" />
+        <StatCard label="Total Tasks" value={totalTasks} icon="Tasks" color="#b89cf8" />
+        <StatCard label="Completed" value={completedTasks} icon="Completed" color="#4caf88" />
+        <StatCard label="Submitted" value={submittedTasks} icon="Submitted" color="#e8a04a" />
+        <StatCard label="In Progress" value={inProgressTasks} icon="In Progress" color="#e8a04a" />
+        <StatCard label="Pending" value={pendingTasks} icon="Pending" color="#e87070" />
         {user.role === 'Student' && (
-          <StatCard label="My Contribution" value={`${myContrib}%`} icon="📊" color="#7c9ef8" />
+          <StatCard label="My Contribution" value={`${myContrib}%`} icon="Contribution" color="#7c9ef8" />
         )}
       </div>
 
@@ -102,14 +108,15 @@ function Dashboard({ user }) {
           </div>
           {recentTasks.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-state-icon">📭</div>
+              <div className="empty-state-icon">No Tasks</div>
               <p>No tasks found</p>
             </div>
           ) : (
             <ul style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
               {recentTasks.map((task) => {
                 const badgeClass =
-                  task.status === 'Done' ? 'badge badge-done' :
+                  task.status === 'Approved' ? 'badge badge-done' :
+                  task.status === 'Submitted' ? 'badge badge-progress' :
                   task.status === 'In Progress' ? 'badge badge-progress' : 'badge badge-pending';
                 return (
                   <li key={task._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
@@ -139,7 +146,7 @@ function Dashboard({ user }) {
             </div>
             {recentProjects.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-state-icon">📂</div>
+                <div className="empty-state-icon">No Projects</div>
                 <p>No projects yet. <NavLink to="/projects/create">Create one!</NavLink></p>
               </div>
             ) : (

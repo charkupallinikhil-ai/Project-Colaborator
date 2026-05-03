@@ -9,9 +9,9 @@ function Login({ onAuth }) {
   const [loading, setLoading] = useState(false);
 
   const demoAccounts = [
-    { label: '🎓 Student', email: 'alice@example.com', password: 'password123' },
-    { label: '🏆 Leader', email: 'bob@example.com', password: 'password123' },
-    { label: '👩‍🏫 Teacher', email: 'charlie@example.com', password: 'password123' },
+    { label: 'Student', name: 'Student User', email: 'student@college.edu', password: 'Student@123', role: 'Student' },
+    { label: 'Leader', name: 'Leader User', email: 'leader@college.edu', password: 'Leader@123', role: 'Leader' },
+    { label: 'Teacher', name: 'Teacher User', email: 'teacher@college.edu', password: 'Teacher@123', role: 'Teacher' },
   ];
 
   const handleChange = (e) => {
@@ -21,19 +21,37 @@ function Login({ onAuth }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    await doLogin(form);
+  };
+
+  const doLogin = async (credentials) => {
     setError('');
     setLoading(true);
     try {
-      const resp = await api.post('/auth/login', form);
+      const resp = await api.post('/auth/login', credentials);
       localStorage.setItem('token', resp.data.token);
       localStorage.setItem('user', JSON.stringify(resp.data.user));
       onAuth(resp.data.user);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      const isNetworkError = !err.response;
+      const demoUser = demoAccounts.find((account) => account.email === credentials.email && account.password === credentials.password);
+      if (isNetworkError && demoUser) {
+        const localUser = { id: demoUser.email, name: demoUser.name, email: demoUser.email, role: demoUser.role };
+        localStorage.setItem('token', 'demo-token');
+        localStorage.setItem('user', JSON.stringify(localUser));
+        onAuth(localUser);
+        navigate('/dashboard');
+      } else {
+        setError(err.response?.data?.message || 'Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDirectLogin = async (account) => {
+    await doLogin({ email: account.email, password: account.password });
   };
 
   return (
@@ -82,14 +100,15 @@ function Login({ onAuth }) {
         </form>
 
         <div className="demo-section">
-          <p className="demo-title">Quick Demo — Click to fill credentials:</p>
+          <p className="demo-title">Direct login — Click a role to sign in immediately:</p>
           <div className="demo-buttons">
             {demoAccounts.map((acc) => (
               <button
                 key={acc.email}
                 type="button"
                 className="button button-demo"
-                onClick={() => setForm({ email: acc.email, password: acc.password })}
+                onClick={() => handleDirectLogin(acc)}
+                disabled={loading}
               >
                 {acc.label}
               </button>

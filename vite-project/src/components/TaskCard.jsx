@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import api from '../api';
 
 function statusClass(status) {
   if (status === 'Approved')   return 'done';
@@ -25,12 +26,56 @@ function TaskCard({ task, user, members = [], onStatusChange, onAssigneeChange, 
   const isOverdue = task.deadline && task.status !== 'Approved' && new Date(task.deadline) < new Date();
 
   const [showSubmit, setShowSubmit] = useState(false);
-  const [link, setLink]             = useState(task.submissionLink || '');
+  const [file, setFile]             = useState(null);
+  const [uploading, setUploading]   = useState(false);
+  const [taskFiles, setTaskFiles]   = useState([]);
 
-  const handleSubmitLink = () => {
-    if (!link.trim()) return;
-    onSubmit && onSubmit(task._id, link.trim());
-    setShowSubmit(false);
+  const loadFiles = async () => {
+    try {
+      const res = await api.get(`/files/task/${task._id}`);
+      setTaskFiles(res.data);
+    } catch (err) {
+      // Ignore errors
+    }
+  };
+
+  useEffect(() => {
+    loadFiles();
+  }, [task._id]);
+
+  const handleSubmitFile = async () => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('projectId', task.projectId._id);
+      formData.append('taskId', task._id);
+      await api.post('/files', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      // After upload, mark as submitted
+      onSubmit && onSubmit(task._id, ''); // Empty link, but status changes
+      setShowSubmit(false);
+      setFile(null);
+      // Reload files
+      loadFiles();
+    } catch (err) {
+      alert('Upload failed: ' + (err.response?.data?.message || 'Unknown error'));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteFile = async (fileId) => {
+    if (!confirm('Are you sure you want to delete this file?')) return;
+    try {
+      await api.delete(`/files/${fileId}`);
+      // Reload files
+      loadFiles();
+    } catch (err) {
+      alert('Delete failed: ' + (err.response?.data?.message || 'Unknown error'));
+    }
   };
 
   return (
@@ -71,6 +116,29 @@ function TaskCard({ task, user, members = [], onStatusChange, onAssigneeChange, 
             style={{ color: 'var(--accent-hover)', wordBreak: 'break-all' }}>
             {task.submissionLink}
           </a>
+        </div>
+      )}
+
+      {/* Uploaded files */}
+      {taskFiles.length > 0 && (
+        <div style={{ fontSize: '0.82rem', background: 'var(--success-light)', borderRadius: '6px', padding: '0.4rem 0.65rem' }}>
+          Files: {taskFiles.map(f => (
+            <div key={f._id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+              <a href={`http://localhost:5000/uploads/${f.filename}`} target="_blank" rel="noreferrer"
+                style={{ color: 'var(--success)', wordBreak: 'break-all' }}>
+                {f.filename}
+              </a>
+              {(user.id === f.uploadedBy._id || isLeaderOrTeacher) && (
+                <button 
+                  onClick={() => handleDeleteFile(f._id)}
+                  style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.8rem' }}
+                  title="Delete file"
+                >
+                  🗑
+                </button>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
@@ -140,19 +208,17 @@ function TaskCard({ task, user, members = [], onStatusChange, onAssigneeChange, 
         )}
       </div>
 
-      {/* Submit link form (student) */}
+      {/* Submit file form (student) */}
       {showSubmit && (
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
           <input
-            type="url"
-            value={link}
-            onChange={(e) => setLink(e.target.value)}
-            placeholder="https://github.com/your-submission"
+            type="file"
+            onChange={(e) => setFile(e.target.files[0])}
             style={{ flex: 1, border: '1.5px solid var(--accent)', borderRadius: '6px', padding: '0.45rem 0.7rem', fontSize: '0.85rem', outline: 'none', minWidth: '200px' }}
           />
-          <button className="button button-sm" onClick={handleSubmitLink}
-            disabled={!link.trim()}>
-            Submit
+          <button className="button button-sm" onClick={handleSubmitFile}
+            disabled={!file || uploading}>
+            {uploading ? 'Uploading...' : 'Submit'}
           </button>
         </div>
       )}
