@@ -57,7 +57,7 @@ function Login({ onAuth }) {
   return (
     <div className="auth-wrapper">
       <div className="auth-brand">
-        <div className="auth-logo">🎓</div>
+        <div className="auth-logo"></div>
         <h1>Welcome Back</h1>
         <p>Sign in to the Student Project Collaboration Platform</p>
       </div>

@@ -5,13 +5,24 @@ const User = require('../models/User');
 const register = async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
-    if (!name || !email || !password) return res.status(400).json({ message: 'Missing fields' });
+    const normalizedName = typeof name === 'string' ? name.trim() : '';
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const rawPassword = typeof password === 'string' ? password : '';
 
-    const existing = await User.findOne({ email });
+    if (!normalizedName || !normalizedEmail || !rawPassword) {
+      return res.status(400).json({ message: 'Missing fields' });
+    }
+
+    const existing = await User.findOne({ email: normalizedEmail });
     if (existing) return res.status(400).json({ message: 'Email already in use' });
 
-    const hashed = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashed, role: role || 'Student' });
+    const hashed = await bcrypt.hash(rawPassword, 10);
+    const user = await User.create({
+      name: normalizedName,
+      email: normalizedEmail,
+      password: hashed,
+      role: role || 'Student',
+    });
     const token = jwt.sign({ id: user._id, role: user.role, name: user.name, email: user.email }, process.env.JWT_SECRET, { expiresIn: '8h' });
 
     res.status(201).json({ user: { id: user._id, name: user.name, email: user.email, role: user.role }, token });
@@ -24,12 +35,17 @@ const register = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ message: 'Missing email or password' });
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const rawPassword = typeof password === 'string' ? password : '';
 
-    const user = await User.findOne({ email });
+    if (!normalizedEmail || !rawPassword) {
+      return res.status(400).json({ message: 'Missing email or password' });
+    }
+
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
-    const match = await bcrypt.compare(password, user.password);
+    const match = await bcrypt.compare(rawPassword, user.password);
     if (!match) return res.status(400).json({ message: 'Invalid credentials' });
 
     const token = jwt.sign({ id: user._id, role: user.role, name: user.name, email: user.email }, process.env.JWT_SECRET, { expiresIn: '8h' });

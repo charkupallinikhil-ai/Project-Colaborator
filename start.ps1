@@ -62,9 +62,9 @@ Write-Host "   🌐 Frontend: http://localhost:5173" -ForegroundColor Cyan
 Write-Host "   🔧 Backend:  http://localhost:5000" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "🔐 Demo Credentials:" -ForegroundColor Yellow
-Write-Host "   👤 Student: student@college.edu / Student@123" -ForegroundColor White
-Write-Host "   👤 Leader:  leader@college.edu / Leader@123" -ForegroundColor White
-Write-Host "   👤 Teacher: teacher@college.edu / Teacher@123" -ForegroundColor White
+Write-Host "   👤 Student: alice@example.com / password123" -ForegroundColor White
+Write-Host "   👤 Leader:  bob@example.com / password123" -ForegroundColor White
+Write-Host "   👤 Teacher: charlie@example.com / password123" -ForegroundColor White
 Write-Host ""
 Write-Host "💡 Tip: If login fails, run 'npm run seed' in backend terminal" -ForegroundColor Green
 Write-Host ""
